@@ -71,6 +71,7 @@ git clone https://github.com/pedroresende/nvim-sync.nvim.git ~/.local/share/nvim
 | `:NvimSync` | Full sync (pull then push) |
 | `:NvimSyncConfigure` | Reconfigure GitHub repository settings |
 | `:NvimSyncInit` | Initialize a new Git repository |
+| `:NvimSyncCleanup` | Clean up git lock files and resolve issues |
 
 ### Key Mappings
 
@@ -131,7 +132,30 @@ The plugin provides direct access to git operations:
 :NvimSyncStatus    " Check what files have changed
 :NvimSyncPull      " Pull latest changes
 :NvimSyncPush      " Push your changes
+:NvimSyncCleanup   " Clean up git lock files if you encounter issues
 ```
+
+## 🛠️ Troubleshooting
+
+### Git Lock File Issues
+
+If you encounter errors like "could not lock config file .git/config: File exists", the plugin automatically cleans up lock files before each operation. However, you can also manually run:
+
+```vim
+:NvimSyncCleanup
+```
+
+### Authentication Issues
+
+- **HTTPS Authentication**: If you're using HTTPS URLs and getting authentication prompts, consider switching to SSH
+- **SSH Setup**: Make sure you have SSH keys set up with GitHub for seamless authentication
+- **Repository Access**: Ensure you have push access to the configured repository
+
+### Plugin Not Working
+
+1. Check if the plugin loaded: Look for "Nvim Sync plugin loaded successfully!" message
+2. Verify git is installed: The plugin requires git to be available in your PATH
+3. Check configuration: Run `:NvimSyncStatus` to see current repository status
 
 ## 🤝 Contributing
 
