@@ -185,13 +185,19 @@ M.setup = function(opts)
 			return
 		end
 
-		run_git_cmd("status --porcelain", function(success, code)
-			if success then
-				run_git_cmd("status", nil)
+		-- Just run git status directly
+		local handle = io.popen("cd " .. config_dir .. " && git status")
+		if handle then
+			local result = handle:read("*a")
+			handle:close()
+			if result and result ~= "" then
+				vim.notify(result, vim.log.levels.INFO, { title = "Git Status" })
 			else
-				vim.notify("Failed to get git status", vim.log.levels.ERROR, { title = "Nvim Sync" })
+				vim.notify("No git status output", vim.log.levels.WARN, { title = "Nvim Sync" })
 			end
-		end)
+		else
+			vim.notify("Failed to get git status", vim.log.levels.ERROR, { title = "Nvim Sync" })
+		end
 	end
 
 	-- Function to pull changes from remote
