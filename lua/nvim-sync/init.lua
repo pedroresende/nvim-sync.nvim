@@ -221,60 +221,73 @@ M.setup = function(opts)
 		end)
 	end
 
-	-- Function to push changes to remote
-	sync_module.push = function()
-		if not fix_git_issues() then
-			return
-		end
-
-		if not is_git_repo() then
-			vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
-			return
-		end
-
-		-- First, add all changes
-		run_git_cmd("add .", function(add_success)
-			if not add_success then
-				vim.notify("Failed to stage changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
-				return
-			end
-
-			-- Check if there are changes to commit
-			run_git_cmd("diff --cached --quiet", function(no_changes)
-				if no_changes then
-					vim.notify("No changes to commit", vim.log.levels.INFO, { title = "Nvim Sync" })
-					return
-				end
-
-				-- Commit with timestamp
-				local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-				local commit_msg = string.format(config.commit_message_template, timestamp)
-				local commit_cmd = string.format('commit -m "%s"', commit_msg)
-
-				run_git_cmd(commit_cmd, function(commit_success)
-					if not commit_success then
-						vim.notify("Failed to commit changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
-						return
-					end
-
-					-- Push to remote
-					local remote = get_tracking_remote()
-					vim.notify(
-						"Pushing changes to remote " .. remote .. "...",
-						vim.log.levels.INFO,
-						{ title = "Nvim Sync" }
-					)
-					run_git_cmd("push " .. remote .. " " .. config.branch, function(push_success)
-						if push_success then
-							vim.notify("Successfully synced to GitHub!", vim.log.levels.INFO, { title = "Nvim Sync" })
-						else
-							vim.notify("Failed to push to remote", vim.log.levels.ERROR, { title = "Nvim Sync" })
-						end
-					end)
-				end)
-			end)
-		end)
-	end
+  -- Function to push changes to remote
+  sync_module.push = function()
+    if not fix_git_issues() then
+      return
+    end
+    
+    if not is_git_repo() then
+      vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
+      return
+    end
+    
+    local remote = get_tracking_remote()
+    
+    -- Check if there are unpushed commits first
+    run_git_cmd("log " .. remote .. "/" .. config.branch .. "..HEAD --oneline", function(has_unpushed, code)
+      if has_unpushed then
+        -- There are unpushed commits, push them
+        vim.notify("Found unpushed commits, pushing to remote " .. remote .. "...", vim.log.levels.INFO, { title = "Nvim Sync" })
+        run_git_cmd("push " .. remote .. " " .. config.branch, function(push_success)
+          if push_success then
+            vim.notify("Successfully pushed commits to GitHub!", vim.log.levels.INFO, { title = "Nvim Sync" })
+          else
+            vim.notify("Failed to push to remote", vim.log.levels.ERROR, { title = "Nvim Sync" })
+          end
+        end)
+        return
+      end
+      
+      -- No unpushed commits, check for uncommitted changes
+      run_git_cmd("add .", function(add_success)
+        if not add_success then
+          vim.notify("Failed to stage changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
+          return
+        end
+        
+        -- Check if there are changes to commit
+        run_git_cmd("diff --cached --quiet", function(no_staged_changes)
+          if no_staged_changes then
+            vim.notify("No changes to commit or push", vim.log.levels.INFO, { title = "Nvim Sync" })
+            return
+          end
+          
+          -- Commit with timestamp
+          local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+          local commit_msg = string.format(config.commit_message_template, timestamp)
+          local commit_cmd = string.format('commit -m "%s"', commit_msg)
+          
+          run_git_cmd(commit_cmd, function(commit_success)
+            if not commit_success then
+              vim.notify("Failed to commit changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
+              return
+            end
+            
+            -- Push to remote
+            vim.notify("Pushing new commit to remote " .. remote .. "...", vim.log.levels.INFO, { title = "Nvim Sync" })
+            run_git_cmd("push " .. remote .. " " .. config.branch, function(push_success)
+              if push_success then
+                vim.notify("Successfully synced to GitHub!", vim.log.levels.INFO, { title = "Nvim Sync" })
+              else
+                vim.notify("Failed to push to remote", vim.log.levels.ERROR, { title = "Nvim Sync" })
+              end
+            end)
+          end)
+        end)
+      end)
+    end)
+  end
 
 	-- Function to sync (pull then push)
 	sync_module.sync = function()
