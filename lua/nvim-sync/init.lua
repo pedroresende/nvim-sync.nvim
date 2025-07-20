@@ -514,8 +514,6 @@ M.setup = function(opts)
 
 	-- Store functions globally for access from other parts of config
 	_G.NvimSync = sync_module
-
-	vim.notify("Nvim Sync plugin loaded successfully!", vim.log.levels.INFO, { title = "Nvim Sync" })
 end
 
 return M
