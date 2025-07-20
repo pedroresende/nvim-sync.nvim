@@ -61,6 +61,38 @@ M.setup = function(opts)
   
   local sync_module = {}
 
+  -- Function to clean up git lock files
+  local function cleanup_git_locks()
+    local lock_files = {
+      config_dir .. "/.git/config.lock",
+      config_dir .. "/.git/index.lock",
+      config_dir .. "/.git/HEAD.lock",
+      config_dir .. "/.git/refs/heads/main.lock",
+      config_dir .. "/.git/refs/heads/master.lock",
+    }
+    
+    for _, lock_file in ipairs(lock_files) do
+      if vim.fn.filereadable(lock_file) == 1 then
+        vim.fn.delete(lock_file)
+        vim.notify("Cleaned up git lock file: " .. vim.fn.fnamemodify(lock_file, ":t"), vim.log.levels.INFO, { title = "Nvim Sync" })
+      end
+    end
+  end
+
+  -- Function to check and fix git repository issues
+  local function fix_git_issues()
+    -- Clean up any lock files first
+    cleanup_git_locks()
+    
+    -- Check if git is available
+    if vim.fn.executable("git") == 0 then
+      vim.notify("Git is not available. Please install git.", vim.log.levels.ERROR, { title = "Nvim Sync" })
+      return false
+    end
+    
+    return true
+  end
+
   -- Helper function to run git commands
   local function run_git_cmd(cmd, callback)
     local full_cmd = string.format("cd %s && git %s", config_dir, cmd)
@@ -99,6 +131,10 @@ M.setup = function(opts)
 
   -- Function to check git status
   sync_module.status = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     if not is_git_repo() then
       vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
       return
@@ -115,6 +151,10 @@ M.setup = function(opts)
 
   -- Function to pull changes from remote
   sync_module.pull = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     if not is_git_repo() then
       vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
       return
@@ -137,6 +177,10 @@ M.setup = function(opts)
 
   -- Function to push changes to remote
   sync_module.push = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     if not is_git_repo() then
       vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
       return
@@ -183,6 +227,10 @@ M.setup = function(opts)
 
   -- Function to sync (pull then push)
   sync_module.sync = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     vim.notify("Starting sync process...", vim.log.levels.INFO, { title = "Nvim Sync" })
     
     -- First pull, then push
@@ -198,6 +246,10 @@ M.setup = function(opts)
 
   -- Function to initialize git repository if it doesn't exist
   sync_module.init = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     if is_git_repo() then
       vim.notify("Already a git repository", vim.log.levels.INFO, { title = "Nvim Sync" })
       return
@@ -247,6 +299,10 @@ M.setup = function(opts)
 
   -- Function to reset/reconfigure the repository settings
   sync_module.configure = function()
+    if not fix_git_issues() then
+      return
+    end
+    
     local username = vim.fn.input("GitHub username: ")
     if username == "" then
       vim.notify("Username required", vim.log.levels.ERROR, { title = "Nvim Sync" })
@@ -272,6 +328,12 @@ M.setup = function(opts)
         vim.notify("Failed to update repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
       end
     end)
+  end
+
+  -- Function to manually clean up git issues
+  sync_module.cleanup = function()
+    cleanup_git_locks()
+    vim.notify("Git cleanup completed", vim.log.levels.INFO, { title = "Nvim Sync" })
   end
 
   -- Auto-sync on save if enabled
@@ -336,6 +398,7 @@ M.setup = function(opts)
   vim.api.nvim_create_user_command("NvimSync", sync_module.sync, { desc = "Sync nvim config (pull then push)" })
   vim.api.nvim_create_user_command("NvimSyncInit", sync_module.init, { desc = "Initialize git repository for nvim config" })
   vim.api.nvim_create_user_command("NvimSyncConfigure", sync_module.configure, { desc = "Configure GitHub repository settings" })
+  vim.api.nvim_create_user_command("NvimSyncCleanup", sync_module.cleanup, { desc = "Clean up git lock files and issues" })
 
   -- Create keymaps (optional - users can customize these)
   vim.keymap.set("n", "<leader>gs", sync_module.status, { desc = "Git Status (nvim config)" })
