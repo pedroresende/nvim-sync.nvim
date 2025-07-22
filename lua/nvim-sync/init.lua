@@ -418,6 +418,47 @@ M.setup = function(opts)
 		end)
 	end
 
+	-- Function to commit changes automatically
+	sync_module.commit = function()
+		if not fix_git_issues() then
+			return
+		end
+		
+		if not is_git_repo() then
+			vim.notify("Config directory is not a git repository", vim.log.levels.ERROR, { title = "Nvim Sync" })
+			return
+		end
+		
+		-- First, add all changes
+		run_git_cmd("add .", function(add_success)
+			if not add_success then
+				vim.notify("Failed to stage changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
+				return
+			end
+			
+			-- Check if there are changes to commit
+			run_git_cmd("diff --cached --quiet", function(no_staged_changes)
+				if no_staged_changes then
+					vim.notify("No changes to commit", vim.log.levels.INFO, { title = "Nvim Sync" })
+					return
+				end
+				
+				-- Commit with timestamp
+				local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+				local commit_msg = string.format(config.commit_message_template, timestamp)
+				local commit_cmd = string.format('commit -m "%s"', commit_msg)
+				
+				run_git_cmd(commit_cmd, function(commit_success)
+					if commit_success then
+						vim.notify("Successfully committed changes!", vim.log.levels.INFO, { title = "Nvim Sync" })
+					else
+						vim.notify("Failed to commit changes", vim.log.levels.ERROR, { title = "Nvim Sync" })
+					end
+				end)
+			end)
+		end)
+	end
+
 	-- Function to manually clean up git issues
 	sync_module.cleanup = function()
 		cleanup_git_locks()
@@ -499,6 +540,11 @@ M.setup = function(opts)
 		"NvimSyncConfigure",
 		sync_module.configure,
 		{ desc = "Configure GitHub repository settings" }
+	)
+	vim.api.nvim_create_user_command(
+		"NvimSyncCommit",
+		sync_module.commit,
+		{ desc = "Commit changes with timestamp" }
 	)
 	vim.api.nvim_create_user_command(
 		"NvimSyncCleanup",
