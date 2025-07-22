@@ -69,6 +69,7 @@ git clone https://github.com/pedroresende/nvim-sync.nvim.git ~/.local/share/nvim
 | `:NvimSyncPull` | Pull changes from remote repository |
 | `:NvimSyncPush` | Push local changes to remote repository |
 | `:NvimSync` | Full sync (pull then push) |
+| `:NvimSyncCommit` | Commit changes with a timestamped message |
 | `:NvimSyncConfigure` | Reconfigure GitHub repository settings |
 | `:NvimSyncInit` | Initialize a new Git repository |
 | `:NvimSyncCleanup` | Clean up git lock files and resolve issues |
@@ -132,6 +133,7 @@ The plugin provides direct access to git operations:
 :NvimSyncStatus    " Check what files have changed
 :NvimSyncPull      " Pull latest changes
 :NvimSyncPush      " Push your changes
+:NvimSyncCommit    " Commit changes with a timestamped message
 :NvimSyncCleanup   " Clean up git lock files if you encounter issues
 ```
 

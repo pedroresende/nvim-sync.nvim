@@ -496,9 +496,12 @@ M.setup = function(opts)
 									vim.log.levels.INFO,
 									{ title = "Nvim Sync" }
 								)
-								-- Start sync after setup
+					-- Start commit after setup
 								vim.defer_fn(function()
-									sync_module.sync()
+									sync_module.commit()
+									vim.defer_fn(function()
+										sync_module.sync()
+									end, 1000) -- Delay to allow commit to complete
 								end, 1000)
 							end
 						end)
