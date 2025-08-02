@@ -508,13 +508,16 @@ M.setup = function(opts)
 					end
 				end)
 			else
-				-- Just notify, don't try to change remote or sync automatically
+				-- Repository exists, perform sync on startup
 				vim.notify(
-					string.format("Using repository %s/%s", username, repo_name),
+					string.format("Using repository %s/%s - starting sync...", username, repo_name),
 					vim.log.levels.INFO,
 					{ title = "Nvim Sync" }
 				)
-				-- Let user manually sync if needed
+				-- Perform sync with a delay to ensure everything is loaded
+				vim.defer_fn(function()
+					sync_module.sync()
+				end, 1000)
 			end
 		end)
 	end
